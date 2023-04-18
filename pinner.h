@@ -274,7 +274,7 @@ else if(i_o_p == 'o')
 if(pin == 38 || pin == 18 || pin == 10 || 
    pin == 20 || pin == 21 )
 {
-//define portd Register Pointers
+//define porth Register Pointers
 volatile unsigned char* port_h = (unsigned char*)0x102;
 volatile unsigned char* ddr_h = (unsigned char*)0x101;
 volatile unsigned char* pin_h = (unsigned char*)0x100;
@@ -344,6 +344,76 @@ else if (pin >= 20 )
   *ddr_h |= 0x01 << (3);
   }
   
+}
+}
+//port g
+if(pin == 4 || pin == 39 || pin == 40 || 
+   pin == 41 )
+{
+//define porth Register Pointers
+volatile unsigned char* port_g = (unsigned char*)0x34;
+volatile unsigned char* ddr_g = (unsigned char*)0x33;
+volatile unsigned char* pin_g = (unsigned char*)0x32;
+if( i_o_p == 'i')
+{
+  if(pin == 4)
+  {
+  *ddr_g &= ~(0x01 << (5));
+  *port_g &= ~(0x01 << (5));
+  }
+  else if (pin >= 39 )
+  {
+  *ddr_g  &= ~(0x01 << (2));
+  *port_g &= ~(0x01 << (2));
+  }
+    else if (pin == 40 )
+  {
+  *ddr_g &= ~(0x01 << 1);
+  *port_g &= ~(0x01 << 1);
+  }
+      else if (pin == 41 )
+  {
+  *ddr_g &= ~(0x01 );
+  *port_g &= ~(0x01 );
+  }
+}
+else if(i_o_p == 'o')
+{
+   if(pin == 4)
+  {
+  *ddr_g |= 0x01 << (5);
+  }
+else if (pin == 39 )
+  {
+  *ddr_g |= 0x01 << (2);
+  }
+    else if (pin == 40 )
+  {
+  *ddr_g |= 0x01 << (1);
+  }
+      else if (pin == 41)
+  {
+  *ddr_g |= 0x01 ;
+  }
+  else if(i_o_p == 'o')
+{
+   if(pin == 4)
+  {
+  *ddr_g |= 0x01 << (5);
+  }
+else if (pin == 39 )
+  {
+  *ddr_g |= 0x01 << (2);
+  }
+    else if (pin == 40 )
+  {
+  *ddr_g |= 0x01 << (1);
+  }
+      else if (pin == 41)
+  {
+  *ddr_g |= 0x01 ;
+  }
+}
 }
 }
 }//function end
