@@ -6,10 +6,10 @@
 #include "pinner.h"
 
 //masks
-#define CH1Rec 0x40  //pin 12
+#define CH1Rec 0x10  //pin 10
 #define CH2Rec 0x20  //pin 11
-#define CH3Rec 0x10  //pin 10
-#define CH4Rec 0x08   //pin 6  
+#define CH3Rec 0x40  //pin 12
+#define CH4Rec 0x80   //pin 13  
 //Global Variables
 
 //masks
@@ -55,10 +55,10 @@ volatile unsigned char* pin_b = (unsigned char*)0x23;
 //Port H
 
 //input pins
-  char rePin1 = '12';//channel 1
+  char rePin1 = '10';//channel 1
   char rePin2 = '11';//Channel 2
-  char rePin3 = '10';//Channel 3 
-  char rePin4 = '6';//Channel 4 
+  char rePin3 = '12';//Channel 3 
+  char rePin4 = '13';//Channel 4 
 
 //output pins
   char moPin1 = '13'; //Motor 1 Front Left
@@ -116,9 +116,10 @@ i++;
 }
 
 //Serial.println(*pin_b & CH2Rec);
-if(wave_CH_2 >0)
+if(wave_CH_4 >0)
 {
-Serial.println(wave_CH_2);
+
+Serial.println(wave_CH_4);
 
 
 }
@@ -161,29 +162,29 @@ ISR(PCINT0_vect)
   
  
  current_time = gTime();
-//2 ch1
-//3 ch2
-//6 ch3
-//7 ch4
+//2 ch1 CH1Rec
+//3 ch2 CH2Rec
+//6 ch3 CH3Rec
+//7 ch4 CH4Rec
 
-  //Channel 1
-  cur_state_CH_1 = (*pin_e & 0b00010000);
+  //Channel 1  //pin 10
+cur_state_CH_1 = (*pin_b & CH1Rec);
   
 //if new state if higher than old state it changed from 0 to 1 start wave
 if(cur_state_CH_1 > state_CH_1 )
 {
- wtime1 = gTime();
+ wtime1 = current_time;
   state_CH_1 = cur_state_CH_1;
 }
 //if new state if lower than old state it changed from 1 to 0 end wave
 else if(cur_state_CH_1 < state_CH_1 )
 {
-  wave_CH_1 = micros() - wtime1;
+  wave_CH_1 = current_time - wtime1;
   state_CH_1 = cur_state_CH_1;
 }
 
 
-//Channel 2
+//Channel 2   //pin 11
   cur_state_CH_2 = (*pin_b & CH2Rec);
   
 //if new state if higher than old state it changed from 0 to 1 start wave
@@ -197,6 +198,39 @@ else if(cur_state_CH_2 < state_CH_2 )
 {
   wave_CH_2 = current_time - wtime2;
   state_CH_2 = cur_state_CH_2;
+}
+
+  //Channel 3  //pin 12
+cur_state_CH_3 = (*pin_b & CH3Rec);
+  
+//if new state if higher than old state it changed from 0 to 1 start wave
+if(cur_state_CH_3 > state_CH_3 )
+{
+ wtime3 = current_time;
+  state_CH_3 = cur_state_CH_3;
+}
+//if new state if lower than old state it changed from 1 to 0 end wave
+else if(cur_state_CH_3 < state_CH_3 )
+{
+  wave_CH_3 = current_time - wtime3;
+  state_CH_3 = cur_state_CH_3;
+}
+
+
+//Channel 4  //pin 13
+  cur_state_CH_4 = (*pin_b & CH4Rec);
+  
+//if new state if higher than old state it changed from 0 to 1 start wave
+if(cur_state_CH_4 > state_CH_4 )
+{
+ wtime4 =current_time;
+  state_CH_4 = cur_state_CH_4;
+}
+//if new state if lower than old state it changed from 1 to 0 end wave
+else if(cur_state_CH_4 < state_CH_4 )
+{
+  wave_CH_4 = current_time - wtime4;
+  state_CH_4 = cur_state_CH_4;
 }
 
 }
