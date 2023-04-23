@@ -6,11 +6,17 @@
 #include "pinner.h"
 
 //masks
+ //Reciever channels
 #define CH1Rec 0x10  //pin 10
 #define CH2Rec 0x20  //pin 11
 #define CH3Rec 0x40  //pin 12
 #define CH4Rec 0x80   //pin 13  
+
+ //On/Off switch Channel 6
+ #define CH6swch 0x08  //pin 50 
 //Global Variables
+
+
 
 //masks
 
@@ -34,10 +40,10 @@ unsigned long countmicros;
   volatile unsigned char *myPCICR = (unsigned char *) 0x68;      //set register 7,6,5,4 to 1 to enable interupts pins 13,12,12,10 respectively
 
   //variables for wave calculation 
-  unsigned long wave_CH_1, wave_CH_2 , wave_CH_3, wave_CH_4;
-  int state_CH_1, state_CH_2, state_CH_3, state_CH_4;
-  int cur_state_CH_1, cur_state_CH_2, cur_state_CH_3, cur_state_CH_4; 
-  unsigned long wtime1, wtime2, wtime3, wtime4;
+  unsigned long wave_CH_1, wave_CH_2 , wave_CH_3, wave_CH_4, wave_CH_6;
+  int state_CH_1, state_CH_2, state_CH_3, state_CH_4,state_CH_6;
+  int cur_state_CH_1, cur_state_CH_2, cur_state_CH_3, cur_state_CH_4,cur_state_CH_6; 
+  unsigned long wtime1, wtime2, wtime3, wtime4, wtime6;
 //port B
 
 //Port D
@@ -45,12 +51,12 @@ unsigned long countmicros;
 //Port C
 
 //Port E pins 2 / 3
-//port e output 
+//port GPIO
 volatile unsigned char* port_e = (unsigned char*)0x2E; //pins 2/3 use registers 4/5 respectively
 volatile unsigned char* ddr_e = (unsigned char*)0x2D; //pins 2/3 use registers 4/5 respectively
 volatile unsigned char* pin_e = (unsigned char*)0x2C; //pins 2/3 use registers 4/5 respectively
 volatile unsigned char* port_h = (unsigned char*)0x102;  // pins 6/7 use  registers 3/4  respectively
-
+volatile unsigned char* pin_h = (unsigned char*)0x100;
 volatile unsigned char* pin_b = (unsigned char*)0x23;
 //Port H
 
@@ -60,6 +66,7 @@ volatile unsigned char* pin_b = (unsigned char*)0x23;
   char rePin3 = '12';//Channel 3 
   char rePin4 = '13';//Channel 4 
 
+ char swchpin = '1'; //channel 6 from reciever
 //output pins
   char moPin1 = '13'; //Motor 1 Front Left
   char moPin2 = '12'; //Motor 2 Front Riger
@@ -75,7 +82,8 @@ void setup() {
   pinner(moPin2,'o');//Motor 2 Front Riger
   pinner(moPin3,'o');//Motor 3 Back Left
   pinner(moPin4,'o');//Motor 4 Back Right
-
+ //switch input pin
+   pinner(swchpin,'i');//Motor 1 Front Left
   //Reciever inputs
   pinner(rePin1,'i');//Motor 1 Front Left
   pinner(rePin2,'i');//Motor 2 Front Right
@@ -86,6 +94,7 @@ void setup() {
  state_CH_2 = 0;
  state_CH_3 = 0;
  state_CH_4 = 0;
+  state_CH_6 = 0;
    // initialize Timer2 to trigger an interrupt every 1 millisecond
   // setup the timer control registers
    noInterrupts ();
@@ -97,13 +106,16 @@ void setup() {
 
   //enable interupts for reciver input wave calculation
  *myPCICR |= 0b00000001 ; //set register 0 to 1 to enable interupts *myPCICR
- *myPCMSK0 |= 0b11110000 ;   //set register 7,6,5,4 to 1 to enable interupts pins 13,12,12,10 respectively
+ *myPCMSK0 |= 0b11111000 ;   //set register 7,6,5,4 to 1 to enable interupts pins 13,12,12,10 respectively
 
 
 
 }
 
 void loop() {
+  //on/off button 
+  if(wave_CH_6 > 1500)
+  {
   int i = 0;
   
   if(i = 100000)
@@ -116,16 +128,24 @@ i++;
 }
 
 //Serial.println(*pin_b & CH2Rec);
+if(wave_CH_6 >0)
+{
+
+Serial.println(wave_CH_6);
+wave_CH_6 =0;
+
+}
 if(wave_CH_4 >0)
 {
 
 Serial.println(wave_CH_4);
-
-
-}
-
+ wave_CH_4 = 0;
 
 }
+Serial.println(digitalRead(1));
+ //end button if statement
+  }
+} //end main loop
 //FUNCTIONS
 //global timer
 unsigned long gTime()
@@ -232,7 +252,22 @@ else if(cur_state_CH_4 < state_CH_4 )
   wave_CH_4 = current_time - wtime4;
   state_CH_4 = cur_state_CH_4;
 }
-
+ 
+//Channel 6  //pin 1
+  cur_state_CH_6 = (*pin_b & CH6swch);
+  //cur_state_CH_6 = (digitalRead(50));
+//if new state if higher than old state it changed from 0 to 1 start wave
+if(cur_state_CH_6 > state_CH_6 )
+{
+ wtime6 = current_time;
+  state_CH_6 = cur_state_CH_6;
+}
+//if new state if lower than old state it changed from 1 to 0 end wave
+else if(cur_state_CH_6 < state_CH_6 )
+{
+  wave_CH_6 = current_time - wtime6;
+  state_CH_6 = cur_state_CH_6;
+}
 }
 
 
