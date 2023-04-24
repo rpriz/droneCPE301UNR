@@ -5,6 +5,11 @@
 //include files
 #include "pinner.h"
 #include <Servo.h>
+ #include "Wire.h"
+ #include <MPU6050_light.h>
+ 
+ //start gyro
+ MPU6050 mpu(Wire);
 
 //masks
  //Reciever channels
@@ -83,6 +88,7 @@ volatile unsigned char* pin_b = (unsigned char*)0x23;
   char moPin3 = '3'; //Motor 3 Back Left
   char moPin4 = '4'; //Motor 4 Back Right
   //int variables 
+  int timer = 0;
 //ESC defined
 Servo ESC_FL;     // create servo object to control the ESC Front Left Motor 1 pin 5
 Servo ESC_FR;     // create servo object to control the ESC Fromnt Right Motor 2 pin 2
@@ -91,6 +97,8 @@ Servo ESC_BR;     // create servo object to control the ESC Back Right  Motor 4 
 void setup() {
   //start serial for testing
   Serial. begin(9600);
+  //start gyro
+   Wire.begin();
   //configure pins for input or output
   //ESC outputs
   pinner(moPin1,'o'); //Motor 1 Front Left
@@ -122,7 +130,15 @@ void setup() {
   //enable interupts for reciver input wave calculation
  *myPCICR |= 0b00000001 ; //set register 0 to 1 to enable interupts *myPCICR
  *myPCMSK0 |= 0b11111100 ;   //set register 7,6,5,4 to 1 to enable interupts pins 13,12,12,10 respectively
-
+//gyro setup
+byte status = mpu.begin();
+   Serial.print(F("MPU6050 status: "));
+   Serial.println(status);
+   while (status != 0) { } // stop everything if could not connect to MPU6050
+ Serial.println(F("Calculating offsets, do not move MPU6050"));
+   delay(1000);
+   mpu.calcOffsets(); // gyro and accelero
+   Serial.println("Done!\n");
 //esc setup
 
 ESC_FL.attach(5,1000,2000); 
@@ -133,6 +149,7 @@ ESC_BR.attach(4,1000,2000);
 
 void loop() {
   //on/off button 
+  gyroMPU();
   if(wave_CH_6 > 1500)
   {
   int i = 0;
@@ -212,6 +229,22 @@ unsigned long gTime()
     }
     interrupts(); // enable interrupts
     return ((timer_micros << 8 ) + countmicros)* 8; // calculate elapsed time in microseconds 
+}
+void gyroMPU()
+{
+   mpu.update();
+ if ((millis() - timer) > 10) { // print data every 10ms
+     Serial.print("X : ");
+     Serial.print(mpu.getAngleX());
+     Serial.print("\tY : ");
+     Serial.print(mpu.getAngleY());
+     Serial.print("\tZ : ");
+     Serial.println(mpu.getAngleZ());
+     timer = millis();
+   }
+
+
+
 }
 void recieverInput()
 {
