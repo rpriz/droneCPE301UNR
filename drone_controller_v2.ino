@@ -4,6 +4,7 @@
 
 //include files
 #include "pinner.h"
+#include <Servo.h>
 
 //masks
  //Reciever channels
@@ -12,16 +13,22 @@
 #define CH3Rec 0x40  //pin 12
 #define CH4Rec 0x80   //pin 13  
 
+  //GPIO
+#define PX0 0x01  //register 0
+#define PX1 0x02  //register 1
+#define PX2 0x04  //register 2
+#define PX3 0x08  //register 3
+#define PX4 0x10  //register 4
+#define PX5 0x20  //register 5
+#define PX6 0x40  //register 6
+#define PX7 0x80  //register 7
+
  //On/Off switch Channel 6
  #define CH6swch 0x08  //pin 50 
 //Global Variables
 
 
-
-//masks
-
-//test var
-
+unsigned long Rest_wave = 20000;
 unsigned long timer_2;
 int last_channel_2 = 0;
   //global timer
@@ -44,6 +51,9 @@ unsigned long countmicros;
   int state_CH_1, state_CH_2, state_CH_3, state_CH_4,state_CH_6;
   int cur_state_CH_1, cur_state_CH_2, cur_state_CH_3, cur_state_CH_4,cur_state_CH_6; 
   unsigned long wtime1, wtime2, wtime3, wtime4, wtime6;
+
+  //ESC
+  unsigned long esc1, esc2 ,esc3 ,esc4;
 //port B
 
 //Port D
@@ -68,11 +78,16 @@ volatile unsigned char* pin_b = (unsigned char*)0x23;
 
  char swchpin = '1'; //channel 6 from reciever
 //output pins
-  char moPin1 = '13'; //Motor 1 Front Left
-  char moPin2 = '12'; //Motor 2 Front Riger
-  char moPin3 = '11'; //Motor 3 Back Left
-  char moPin4 = '10'; //Motor 4 Back Right
-
+  char moPin1 = '5'; //Motor 1 Front Left
+  char moPin2 = '2'; //Motor 2 Front Right
+  char moPin3 = '3'; //Motor 3 Back Left
+  char moPin4 = '4'; //Motor 4 Back Right
+  //int variables 
+//ESC defined
+Servo ESC_FL;     // create servo object to control the ESC Front Left Motor 1 pin 5
+Servo ESC_FR;     // create servo object to control the ESC Fromnt Right Motor 2 pin 2
+Servo ESC_BL;     // create servo object to control the ESC Back left Motor 3 pin 3
+Servo ESC_BR;     // create servo object to control the ESC Back Right  Motor 4 pin 4
 void setup() {
   //start serial for testing
   Serial. begin(9600);
@@ -106,10 +121,14 @@ void setup() {
 
   //enable interupts for reciver input wave calculation
  *myPCICR |= 0b00000001 ; //set register 0 to 1 to enable interupts *myPCICR
- *myPCMSK0 |= 0b11111000 ;   //set register 7,6,5,4 to 1 to enable interupts pins 13,12,12,10 respectively
+ *myPCMSK0 |= 0b11111100 ;   //set register 7,6,5,4 to 1 to enable interupts pins 13,12,12,10 respectively
 
+//esc setup
 
-
+ESC_FL.attach(5,1000,2000); 
+ESC_FR.attach(2,1000,2000); 
+ESC_BL.attach(3,1000,2000); 
+ESC_BR.attach(4,1000,2000); 
 }
 
 void loop() {
@@ -128,23 +147,56 @@ i++;
 }
 
 //Serial.println(*pin_b & CH2Rec);
-if(wave_CH_6 >0)
+if(wave_CH_1 >0)
 {
+Serial.println("1");
+Serial.println(wave_CH_1);
 
-Serial.println(wave_CH_6);
-wave_CH_6 =0;
+
+}
+if(wave_CH_2 >0)
+{
+Serial.println("2");
+Serial.println(wave_CH_2);
+
+
+}
+if(wave_CH_3 >0)
+{
+Serial.println("3");
+Serial.println(wave_CH_3);
+
 
 }
 if(wave_CH_4 >0)
 {
-
+Serial.println("4");
 Serial.println(wave_CH_4);
- wave_CH_4 = 0;
+
 
 }
-Serial.println(digitalRead(1));
+if(wave_CH_6 >0)
+{
+
+Serial.println("6");
+Serial.println(wave_CH_6);
+
+}
+
+//Serial.println(*pin_b & CH4Rec);
+
  //end button if statement
   }
+  noInterrupts();
+  esc1 = wave_CH_3;
+  esc2 = wave_CH_3;
+  esc3 =wave_CH_3;
+  esc4 = wave_CH_3;
+ESC_FL.writeMicroseconds(esc1);
+ESC_FR.writeMicroseconds(esc2);
+ESC_BL.writeMicroseconds(wave_CH_3);
+ESC_BR.writeMicroseconds(wave_CH_3);
+interrupts();
 } //end main loop
 //FUNCTIONS
 //global timer
@@ -167,6 +219,28 @@ void recieverInput()
 
 
 }
+
+void ESC_PWM()
+{
+  noInterrupts (); // disable interrupts
+  int timeStart = gTime();
+
+//start wave
+while(gTime() - timeStart < wave_CH_3)
+{
+ 
+*port_e |= PX4;
+
+}
+ timeStart = gTime();
+while(gTime() - timeStart < Rest_wave)
+{
+*port_e &= PX4;
+}
+//wave_CH_3
+interrupts (); // enables interrupts
+}
+
 ///ISR FUNCTIONS
 //mymillis function ISR
 ISR(TIMER2_OVF_vect)
@@ -178,6 +252,7 @@ ISR(TIMER2_OVF_vect)
 //Reciver interupt wave calculation
 ISR(PCINT0_vect)
 {
+   noInterrupts (); // disable interrupts
  // unsigned long wave_CH_1, wave_CH_2 , wave_CH_3, wave_CH_4;
   
  
@@ -268,6 +343,7 @@ else if(cur_state_CH_6 < state_CH_6 )
   wave_CH_6 = current_time - wtime6;
   state_CH_6 = cur_state_CH_6;
 }
+ interrupts (); // disable interrupts
 }
 
 
