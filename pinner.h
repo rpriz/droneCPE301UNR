@@ -1,5 +1,6 @@
 
 //my function to set pin as input/output/input with pullup inabled 
+//analog pins must be prefixed by 10 i.e. analog pin 1 is 101
 void pinner(int pin, char i_o_p)
 {
   //porta pins
@@ -225,9 +226,39 @@ else if(i_o_p == 'o')
 }
 
 }
+//portf
+if(pin == 100 || pin == 101 || pin == 102 || 
+   pin == 103 || pin == 104 || pin == 105 || 
+   pin == 106 || pin == 107 )
+{
+//define porta Register Pointers 
+volatile unsigned char* port_f = (unsigned char*)0x31;
+volatile unsigned char* ddr_f = (unsigned char*)0x30;
+volatile unsigned char* pin_f = (unsigned char*)0x2F;
+
+if( i_o_p == 'i')
+{
+  *ddr_f &= ~(0x01 << (pin-100));
+  *port_f &= ~(0x01 << (pin-100));
+ 
+}
+else if( i_o_p == 'p')
+{
+ 
+  *ddr_f &= ~(0x01 << (pin-100));
+  *port_f |= 0x01 << (pin-100);
+
+}
+else if(i_o_p == 'o')
+{
+   
+  *ddr_f |= 0x01 << (pin-100);
+ 
+}
+}
 
 //port h pins CHECKED
- //
+ 
 if(pin == 16 || pin == 17 || pin == 9 || 
    pin == 8 || pin == 7 || pin == 6 )
 {
