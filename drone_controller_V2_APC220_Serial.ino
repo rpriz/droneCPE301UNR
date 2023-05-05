@@ -1,3 +1,5 @@
+
+
 //Drone Flight controller
 //Coded By: Roger Pzybyla and Nick K
 //CPE 301 Final Project
@@ -7,14 +9,13 @@
 #include <Servo.h>
  #include "Wire.h"
  #include <MPU6050_light.h>
- #include <NeoSWSerial.h>
- 
+
  //start gyro
  MPU6050 mpu(Wire);
-NeoSWSerial apc220Serial(41,42);
+
 //masks
  //Reciever channels
-#define CH1Rec 0x10  //pin 10
+#define CH1Rec 0x10  //pi  n 10
 #define CH2Rec 0x20  //pin 11
 #define CH3Rec 0x40  //pin 12
 #define CH4Rec 0x80   //pin 13  
@@ -95,10 +96,26 @@ Servo ESC_FL;     // create servo object to control the ESC Front Left Motor 1 p
 Servo ESC_FR;     // create servo object to control the ESC Fromnt Right Motor 2 pin 2
 Servo ESC_BL;     // create servo object to control the ESC Back left Motor 3 pin 3
 Servo ESC_BR;     // create servo object to control the ESC Back Right  Motor 4 pin 4
+
+#define RDA 0x80
+#define TBE 0x20
+volatile unsigned char *myUCSR1A = (unsigned char *)0xC8;
+volatile unsigned char *myUCSR1B = (unsigned char *)0xC9;
+volatile unsigned char *myUCSR1C = (unsigned char *)0xCA;
+volatile unsigned int  *myUBRR1  = (unsigned int *) 0xCC;
+volatile unsigned char *myUDR1   = (unsigned char *)0xCE;
+
+volatile unsigned char* my_ADMUX = (unsigned char*) 0x7C;
+volatile unsigned char* my_ADCSRB = (unsigned char*) 0x7B;
+volatile unsigned char* my_ADCSRA = (unsigned char*) 0x7A;
+volatile unsigned int* my_ADC_DATA = (unsigned int*) 0x78;
+volatile unsigned char* Port_B = (unsigned char*) 0x25;
+volatile unsigned char* DDR_B = (unsigned char*) 0x24;
+
 void setup() {
   //start serial for testing
   Serial. begin(9600);
-  apc220Serial.begin(9600);
+  U1init(9600);
   //start gyro
    Wire.begin();
   //configure pins for input or output
@@ -236,12 +253,13 @@ void gyroMPU()
 {
    mpu.update();
  if ((millis() - timer) > 10) { // print data every 10ms
-     apc220Serial.print("X : ");
-     apc220Serial.print(mpu.getAngleX());
-     apc220Serial.print("\tY : ");
-     apc220Serial.print(mpu.getAngleY());
-     apc220Serial.print("\tZ : ");
-     apc220Serial.println(mpu.getAngleZ());
+     U1putchar("X : ");
+     U1putchar(mpu.getAngleX());
+     U1putchar("\tY : ");
+     U1putchar(mpu.getAngleY());
+     U1putchar("\tZ : ");
+     U1putchar(mpu.getAngleZ());
+     U1putchar('\n');
      timer = millis();
    }
 
@@ -379,4 +397,19 @@ else if(cur_state_CH_6 < state_CH_6 )
   state_CH_6 = cur_state_CH_6;
 }
  interrupts (); // disable interrupts
+}
+
+void U1init(unsigned long U1baud) {
+  unsigned long FCPU = 16000000;
+  unsigned int tbaud;
+  tbaud = (FCPU / 16 / U1baud - 1);
+  *myUCSR1A = 0x20;
+  *myUCSR1B = 0x18;
+  *myUCSR1C = 0x06;
+  *myUBRR1  = tbaud;
+}
+
+void U1putchar(unsigned char U1pdata) {
+  while((*myUCSR1A & TBE) == 0){};
+  *myUDR1 = U1pdata;
 }
