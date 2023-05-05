@@ -2,6 +2,37 @@
 //my function to set pin as input/output/input with pullup inabled 
 void pinner(int pin, char i_o_p)
 {
+  //porta pins
+
+if(pin == 22 || pin == 23 || pin == 24 || 
+   pin == 25 || pin == 26 || pin == 27 || 
+   pin == 28 || pin == 29 )
+{
+//define porta Register Pointers 
+volatile unsigned char* port_a = (unsigned char*)0x22;
+volatile unsigned char* ddr_a = (unsigned char*)0x21;
+volatile unsigned char* pin_a = (unsigned char*)0x20;
+
+if( i_o_p == 'i')
+{
+  *ddr_a &= ~(0x01 << (pin-22));
+  *port_a &= ~(0x01 << (pin-22));
+ 
+}
+else if( i_o_p == 'p')
+{
+ 
+  *ddr_a &= ~(0x01 << (pin-22));
+  *port_a |= 0x01 << (pin-22);
+
+}
+else if(i_o_p == 'o')
+{
+   
+  *ddr_a |= 0x01 << (pin-22);
+ 
+}
+}
   //portb pins CHECKED
 if(pin == 13 || pin == 12 || pin == 11 || 
    pin == 10 || pin == 50 || pin == 51 || 
