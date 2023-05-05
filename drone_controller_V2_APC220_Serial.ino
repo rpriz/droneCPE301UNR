@@ -109,13 +109,17 @@ volatile unsigned char* my_ADMUX = (unsigned char*) 0x7C;
 volatile unsigned char* my_ADCSRB = (unsigned char*) 0x7B;
 volatile unsigned char* my_ADCSRA = (unsigned char*) 0x7A;
 volatile unsigned int* my_ADC_DATA = (unsigned int*) 0x78;
-volatile unsigned char* Port_B = (unsigned char*) 0x25;
-volatile unsigned char* DDR_B = (unsigned char*) 0x24;
+volatile unsigned char* Port_L = (unsigned char*) 0x98;
 
 void setup() {
   //start serial for testing
   Serial. begin(9600);
   U1init(9600);
+  // setup the ADC
+  adc_init();
+  // setup the pins
+  *Port_L |= 0b00000100; // set pin 42 as output
+  *Port_L |= 0b00000010; // set pin 41 as output
   //start gyro
    Wire.begin();
   //configure pins for input or output
@@ -233,6 +237,22 @@ ESC_FR.writeMicroseconds(esc2);
 ESC_BL.writeMicroseconds(wave_CH_3);
 ESC_BR.writeMicroseconds(wave_CH_3);
 interrupts();
+
+  // get the reading from the ADC
+  unsigned int adc_reading = adc_read(0);
+  // If the ADC reading is less than 950, turn on pin 42 and turn off pin 41
+  if(adc_reading < 950)
+  {
+    *Port_L |= 0b00000100; // turn on pin 42
+    *Port_L &= 0b11111101; // turn off pin 41
+  }
+  // If the ADC reading is greater than or equal to 950, turn on pin 41 and turn off pin 42
+  else
+  {
+    *Port_L |= 0b00000010; // turn on pin 41
+    *Port_L &= 0b11111011; // turn off pin 42
+  }
+
 } //end main loop
 //FUNCTIONS
 //global timer
@@ -412,4 +432,44 @@ void U1init(unsigned long U1baud) {
 void U1putchar(unsigned char U1pdata) {
   while((*myUCSR1A & TBE) == 0){};
   *myUDR1 = U1pdata;
+}
+
+void adc_init()
+{
+  // setup the A register
+  *my_ADCSRA |= 0b10000000; // set bit   7 to 1 to enable the ADC
+  *my_ADCSRA &= 0b11011111; // clear bit 6 to 0 to disable the ADC trigger mode
+  *my_ADCSRA &= 0b11110111; // clear bit 5 to 0 to disable the ADC interrupt
+  *my_ADCSRA &= 0b11111000; // clear bit 0-2 to 0 to set prescaler selection to slow reading
+  // setup the B register
+  *my_ADCSRB &= 0b11110111; // clear bit 3 to 0 to reset the channel and gain bits
+  *my_ADCSRB &= 0b11111000; // clear bit 2-0 to 0 to set free running mode
+  // setup the MUX Register
+  *my_ADMUX  &= 0b01111111; // clear bit 7 to 0 for AVCC analog reference
+  *my_ADMUX  |= 0b01000000; // set bit   6 to 1 for AVCC analog reference
+  *my_ADMUX  &= 0b11011111; // clear bit 5 to 0 for right adjust result
+  *my_ADMUX  &= 0b11100000; // clear bit 4-0 to 0 to reset the channel and gain bits
+}
+unsigned int adc_read(unsigned char adc_channel_num)
+{
+  // clear the channel selection bits (MUX 4:0)
+  *my_ADMUX  &= 0b11100000;
+  // clear the channel selection bits (MUX 5)
+  *my_ADCSRB &= 0b11110111;
+  // set the channel number
+  if(adc_channel_num > 7)
+  {
+    // set the channel selection bits, but remove the most significant bit (bit 3)
+    adc_channel_num -= 8;
+    // set MUX bit 5
+    *my_ADCSRB |= 0b00001000;
+  }
+  // set the channel selection bits
+  *my_ADMUX  += adc_channel_num;
+  // set bit 6 of ADCSRA to 1 to start a conversion
+  *my_ADCSRA |= 0x40;
+  // wait for the conversion to complete
+  while((*my_ADCSRA & 0x40) != 0);
+  // return the result in the ADC data register
+  return *my_ADC_DATA;
 }
