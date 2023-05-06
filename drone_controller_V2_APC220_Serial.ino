@@ -9,6 +9,7 @@
 #include <Servo.h>
  #include "Wire.h"
  #include <MPU6050_light.h>
+ #include "digitalRite.h"
 
  //start gyro
  MPU6050 mpu(Wire);
@@ -89,6 +90,8 @@ volatile unsigned char* pin_b = (unsigned char*)0x23;
   char moPin2 = '2'; //Motor 2 Front Right
   char moPin3 = '3'; //Motor 3 Back Left
   char moPin4 = '4'; //Motor 4 Back Right
+  const int REDLed = 39;
+  const int GREENLed = 40;
   //int variables 
   int timer = 0;
 //ESC defined
@@ -109,7 +112,7 @@ volatile unsigned char* my_ADMUX = (unsigned char*) 0x7C;
 volatile unsigned char* my_ADCSRB = (unsigned char*) 0x7B;
 volatile unsigned char* my_ADCSRA = (unsigned char*) 0x7A;
 volatile unsigned int* my_ADC_DATA = (unsigned int*) 0x78;
-volatile unsigned char* Port_L = (unsigned char*) 0x98;
+//volatile unsigned char* Port_L = (unsigned char*) 0x98;
 
 void setup() {
   //start serial for testing
@@ -118,8 +121,10 @@ void setup() {
   // setup the ADC
   adc_init();
   // setup the pins
-  *Port_L |= 0b00000100; // set pin 42 as output
-  *Port_L |= 0b00000010; // set pin 41 as output
+ // *Port_L |= 0b00000100; // set pin 42 as output
+ // *Port_L |= 0b00000010; // set pin 41 as output
+  pinner(REDLed,'o');
+  pinner(GREENLed,'o');
   //start gyro
    Wire.begin();
   //configure pins for input or output
@@ -243,14 +248,14 @@ interrupts();
   // If the ADC reading is less than 950, turn on pin 42 and turn off pin 41
   if(adc_reading < 950)
   {
-    *Port_L |= 0b00000100; // turn on pin 42
-    *Port_L &= 0b11111101; // turn off pin 41
+    digitalRite(REDLed,1);
+    digitalRite(GREENLed,0);
   }
   // If the ADC reading is greater than or equal to 950, turn on pin 41 and turn off pin 42
   else
   {
-    *Port_L |= 0b00000010; // turn on pin 41
-    *Port_L &= 0b11111011; // turn off pin 42
+    digitalRite(REDLed,0);
+    digitalRite(GREENLed,1);
   }
 
 } //end main loop
